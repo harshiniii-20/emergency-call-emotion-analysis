@@ -1,0 +1,15 @@
+packages:
+  "recharts": "Data visualization for emotion and call analytics"
+  "framer-motion": "Animations for alerts and page transitions"
+  "date-fns": "Date formatting for call records"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility for merging tailwind classes safely"
+
+images:
+  - path: "artifacts/emergency-dashboard/public/images/bg-grid.png"
+    description: "Dark glowing abstract grid pattern for background depth, cyberpunk tactical emergency style with subtle cyan and red light leaks"
+    aspect_ratio: "16:9"
+
+notes:
+  - App relies on `@workspace/api-client-react` for React Query hooks
+  - Completely dark-themed UI focused on emergency operations

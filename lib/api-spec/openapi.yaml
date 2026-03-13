@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Emergency Call Emotion Analysis API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: emotion
+    description: Emotion analysis operations
+  - name: analytics
+    description: Analytics and trend data
+  - name: calls
+    description: Call management operations
 paths:
   /healthz:
     get:
@@ -24,6 +29,162 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /emotion/analyze:
+    post:
+      operationId: analyzeEmotion
+      tags: [emotion]
+      summary: Analyze emotion from audio or text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmotionAnalysisRequest"
+      responses:
+        "200":
+          description: Emotion analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmotionAnalysisResult"
+
+  /emotion/keywords:
+    post:
+      operationId: detectKeywords
+      tags: [emotion]
+      summary: Detect emergency keywords in transcript
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KeywordDetectionRequest"
+      responses:
+        "200":
+          description: Keyword detection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeywordDetectionResult"
+
+  /calls:
+    get:
+      operationId: listCalls
+      tags: [calls]
+      summary: List recent calls
+      responses:
+        "200":
+          description: List of calls
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CallRecord"
+    post:
+      operationId: createCall
+      tags: [calls]
+      summary: Create a new call record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCallRequest"
+      responses:
+        "201":
+          description: Created call record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallRecord"
+
+  /calls/{id}:
+    get:
+      operationId: getCall
+      tags: [calls]
+      summary: Get a specific call
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Call record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallRecord"
+    patch:
+      operationId: updateCall
+      tags: [calls]
+      summary: Update call (escalate, update status)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCallRequest"
+      responses:
+        "200":
+          description: Updated call record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallRecord"
+
+  /analytics/summary:
+    get:
+      operationId: getAnalyticsSummary
+      tags: [analytics]
+      summary: Get analytics summary
+      responses:
+        "200":
+          description: Analytics summary data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsSummary"
+
+  /analytics/emotion-trends:
+    get:
+      operationId: getEmotionTrends
+      tags: [analytics]
+      summary: Get emotion trend data over time
+      responses:
+        "200":
+          description: Emotion trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmotionTrendPoint"
+
+  /analytics/call-volume:
+    get:
+      operationId: getCallVolume
+      tags: [analytics]
+      summary: Get call volume trend data
+      responses:
+        "200":
+          description: Call volume data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CallVolumePoint"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +195,305 @@ components:
       required:
         - status
 
+    EmotionType:
+      type: string
+      enum:
+        - stressed
+        - drunk
+        - abusive
+        - pain
+        - calm
+        - unknown
+
+    EmotionAnalysisRequest:
+      type: object
+      properties:
+        transcript:
+          type: string
+          description: Text transcript to analyze
+        language:
+          type: string
+          enum: [english, tamil, hindi]
+          default: english
+        simulatedMode:
+          type: boolean
+          default: true
+      required:
+        - transcript
+
+    EmotionAnalysisResult:
+      type: object
+      properties:
+        primaryEmotion:
+          $ref: "#/components/schemas/EmotionType"
+        confidenceScore:
+          type: number
+          minimum: 0
+          maximum: 100
+        emotionBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmotionScore"
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmotionTimelinePoint"
+        language:
+          type: string
+        processingTimeMs:
+          type: integer
+      required:
+        - primaryEmotion
+        - confidenceScore
+        - emotionBreakdown
+        - riskLevel
+        - timeline
+        - language
+        - processingTimeMs
+
+    EmotionScore:
+      type: object
+      properties:
+        emotion:
+          $ref: "#/components/schemas/EmotionType"
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+        - emotion
+        - score
+
+    EmotionTimelinePoint:
+      type: object
+      properties:
+        timestamp:
+          type: number
+          description: Seconds into the audio
+        emotion:
+          $ref: "#/components/schemas/EmotionType"
+        intensity:
+          type: number
+          minimum: 0
+          maximum: 100
+      required:
+        - timestamp
+        - emotion
+        - intensity
+
+    KeywordDetectionRequest:
+      type: object
+      properties:
+        transcript:
+          type: string
+        language:
+          type: string
+          enum: [english, tamil, hindi]
+          default: english
+      required:
+        - transcript
+
+    KeywordDetectionResult:
+      type: object
+      properties:
+        detectedKeywords:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetectedKeyword"
+        highlightedTranscript:
+          type: string
+          description: Transcript with keyword markers
+        alertTriggered:
+          type: boolean
+        alertMessage:
+          type: string
+      required:
+        - detectedKeywords
+        - highlightedTranscript
+        - alertTriggered
+
+    DetectedKeyword:
+      type: object
+      properties:
+        keyword:
+          type: string
+        position:
+          type: integer
+        severity:
+          type: string
+          enum: [low, medium, high]
+      required:
+        - keyword
+        - position
+        - severity
+
+    CallRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        callerId:
+          type: string
+        callerNumber:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+          description: Duration in seconds
+        status:
+          type: string
+          enum: [active, ended, escalated, resolved]
+        language:
+          type: string
+          enum: [english, tamil, hindi]
+        primaryEmotion:
+          $ref: "#/components/schemas/EmotionType"
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        escalated:
+          type: boolean
+        transcript:
+          type: string
+        detectedKeywords:
+          type: array
+          items:
+            type: string
+        confidenceScore:
+          type: number
+        operatorId:
+          type: string
+      required:
+        - id
+        - callerId
+        - callerNumber
+        - startTime
+        - status
+        - language
+        - primaryEmotion
+        - riskLevel
+        - escalated
+        - detectedKeywords
+
+    CreateCallRequest:
+      type: object
+      properties:
+        callerNumber:
+          type: string
+        language:
+          type: string
+          enum: [english, tamil, hindi]
+          default: english
+        operatorId:
+          type: string
+      required:
+        - callerNumber
+
+    UpdateCallRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, ended, escalated, resolved]
+        escalated:
+          type: boolean
+        primaryEmotion:
+          $ref: "#/components/schemas/EmotionType"
+        riskLevel:
+          type: string
+          enum: [low, medium, high, critical]
+        transcript:
+          type: string
+        detectedKeywords:
+          type: array
+          items:
+            type: string
+        confidenceScore:
+          type: number
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalCallsToday:
+          type: integer
+        activeCalls:
+          type: integer
+        escalatedCalls:
+          type: integer
+        avgConfidenceScore:
+          type: number
+        emotionDistribution:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmotionDistributionItem"
+        peakStressHour:
+          type: string
+        highRiskCallsToday:
+          type: integer
+      required:
+        - totalCallsToday
+        - activeCalls
+        - escalatedCalls
+        - avgConfidenceScore
+        - emotionDistribution
+        - peakStressHour
+        - highRiskCallsToday
+
+    EmotionDistributionItem:
+      type: object
+      properties:
+        emotion:
+          $ref: "#/components/schemas/EmotionType"
+        count:
+          type: integer
+        percentage:
+          type: number
+      required:
+        - emotion
+        - count
+        - percentage
+
+    EmotionTrendPoint:
+      type: object
+      properties:
+        hour:
+          type: string
+        stressed:
+          type: integer
+        drunk:
+          type: integer
+        abusive:
+          type: integer
+        pain:
+          type: integer
+        calm:
+          type: integer
+      required:
+        - hour
+        - stressed
+        - drunk
+        - abusive
+        - pain
+        - calm
+
+    CallVolumePoint:
+      type: object
+      properties:
+        hour:
+          type: string
+        count:
+          type: integer
+        highRisk:
+          type: integer
+      required:
+        - hour
+        - count
+        - highRisk
